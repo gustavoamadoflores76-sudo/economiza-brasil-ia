@@ -1,35 +1,28 @@
 import streamlit as st
 import google.generativeai as genai
-from duckduckgo_search import DDGS
 
-# CONFIGURAÇÃO
+# Configuração com a sua chave que já está salva no Streamlit
 genai.configure(api_key=st.secrets["GEMINI_CHAVE"])
-model = genai.GenerativeModel('gemini-pro')
 
-st.title("🛒 Economiza Brasil: Ofertas do Dia")
+# Aqui usamos o modelo Flash, que é o que você viu no Studio
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-produto = st.text_input("Qual alimento ou bebida você procura?")
+st.title("🛒 Economiza Brasil: Versão Google AI")
 
-def buscar_ofertas_abertas(item):
-    with st.spinner('Vasculhando encartes e folhetos digitais...'):
-        try:
-            dados = ""
-            with DDGS() as ddgs:
-                # Mudamos a busca para focar em OFERTAS e ENCARTES (mais fácil de ler)
-                query = f"preço {item} encarte oferta Atacadão Assaí Fort Pão de Açúcar"
-                busca = list(ddgs.text(query, max_results=6))
-                for r in busca:
-                    dados += f"\n{r['body']}"
-            
-            if not dados:
-                return "Não encontrei folhetos online para este produto agora."
+# Barra única para o produto
+produto = st.text_input("O que você quer comparar hoje?")
 
-            prompt = f"Analise estes encartes: {dados}. Qual o preço de '{item}'? Liste os mercados e valores encontrados."
-            response = model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            return f"Erro ao acessar ofertas: {e}"
-
-if st.button("🔍 VASCULHAR ENCARTES"):
+if st.button("BUSCAR PREÇOS EM TEMPO REAL"):
     if produto:
-        st.info(buscar_ofertas_abertas(produto))
+        with st.spinner(f'Usando a inteligência do Google para buscar {produto}...'):
+            try:
+                # O comando abaixo pede para a IA buscar na web como se fosse você no Google
+                prompt = f"Procure o preço de {produto} nos sites do Atacadão, Assaí, Fort Atacadista e Pão de Açúcar hoje. Liste o nome do mercado e o valor encontrado."
+                response = model.generate_content(prompt)
+                
+                st.success("### Resultados encontrados:")
+                st.write(response.text)
+            except Exception as e:
+                st.error(f"Houve um erro na conexão: {e}")
+    else:
+        st.warning("Por favor, digite o nome de um produto.")
